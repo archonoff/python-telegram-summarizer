@@ -1,13 +1,16 @@
 # Этот файл выдал JetBrains AI Assistant
 
-import os
 import asyncio
-from datetime import datetime
-from telethon import TelegramClient
-from telethon.tl.types import InputPeerChannel, InputPeerChat
-from telethon.tl.functions.messages import GetHistoryRequest
+import logging
+import os
+
 from dotenv import load_dotenv
+from jinja2 import Template
 from openai import OpenAI
+from telethon import TelegramClient
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 load_dotenv()
 
@@ -18,99 +21,68 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Имя сессии (создастся файл session.session)
-client = TelegramClient('session', API_ID, API_HASH)
-
-
-async def fetch_messages(entity, since: datetime, until: datetime, limit=1000):
-    """Собирает сообщения из чата/канала за указанный период."""
-    all_messages = []
-    offset_id = 0
-    while True:
-        history = await client(GetHistoryRequest(
-            peer=entity,
-            offset_id=offset_id,
-            offset_date=None,
-            add_offset=0,
-            limit=limit,
-            max_id=0,
-            min_id=0,
-            hash=0
-        ))
-        if not history.messages:
-            break
-
-        for msg in history.messages:
-            msg_date = msg.date
-            if msg_date < since:
-                return all_messages
-            if since <= msg_date <= until and hasattr(msg, 'message'):
-                all_messages.append(msg.message)
-
-        offset_id = history.messages[-1].id
-
-    return all_messages
-
-
-def split_chunks(messages, max_chars=15000):
-    """Разбивает длинный текст на куски, чтобы не превышать лимит токенов."""
-    chunks, current = [], ""
-    for line in messages:
-        if len(current) + len(line) > max_chars:
-            chunks.append(current)
-            current = ""
-        current += line + "\n"
-    if current:
-        chunks.append(current)
-    return chunks
+client = TelegramClient('session_test', API_ID, API_HASH)
 
 
 def summarize_text(text: str) -> str:
-    """Отправляет текст в OpenAI для получения краткого резюме."""
-    prompt = (
-        "Ты — ассистент, который кратко и чётко резюмирует обсуждение.\n\n"
-        f"Текст переписки:\n{text}\n\n"
-        "Выведи основные идеи, точки зрения и выводы."
-    )
+    system_prompt = "Ты — ассистент, который кратко и чётко резюмирует обсуждение. Выделяй основные идеи, точки зрения и выводы."
+    
     resp = openai_client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.5,
-        max_tokens=500
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"{text}"},
+        ],
+        temperature=0.3,
     )
-    return resp.choices[0].message.model_dump()["content"]
+    
+    return resp.choices[0].message.content
+
+
+MESSAGE_TEMPLATE = Template('''
+{% if first_name %}{{first_name}} {% endif %}{% if last_name %}{{last_name}} {% endif %} (@{{username}}), {{datetime}}:
+{{text}}
+{% if reply_to_text %}
+(В ответ на сообщение "{{reply_to_text}}")
+{% endif %}
+''')
 
 
 async def main():
     await client.start()
-    print("Клиент запущен. Введите ID чата/канала и даты.")
+    logger.info('Authorized successfully.')
 
-    # Параметры запроса
-    entity_input = input("Введите username или ID канала/чата: ").strip()
-    since_str = input("С какой даты (YYYY-MM-DD): ").strip()
-    until_str = input("По какую дату (YYYY-MM-DD): ").strip()
+    messages = []
+    messages_dict = {}
+    async for message in client.iter_messages('AnimeCellTbilisi', reply_to=357929, min_id=824943, max_id=826083, reverse=True):
+        if message.text:
+            messages_dict[message.id] = message.text
 
-    since = datetime.fromisoformat(since_str)
-    until = datetime.fromisoformat(until_str)
+            reply_to_text = messages_dict.get(message.reply_to.reply_to_msg_id, None) if message.reply_to else None
 
-    # Получаем entity (работает и с публичными, и с приватными чатами, если вы в них состоите)
-    entity = await client.get_entity(entity_input)
+            formatted_message = MESSAGE_TEMPLATE.render(
+                first_name=message.sender.first_name,
+                last_name=message.sender.last_name,
+                username=message.sender.username,
+                datetime=message.date.strftime("%Y-%m-%d %H:%M:%S"),
+                text=message.text,
+                reply_to_text=reply_to_text,
+            )
 
-    print("Собираем сообщения...")
-    messages = await fetch_messages(entity, since, until)
+            messages.append(formatted_message)
+
     if not messages:
-        print("Сообщений за указанный период не найдено.")
+        logger.warning('No messages found in the specified period.')
         return
 
-    print(f"Найдено {len(messages)} сообщений. Генерируем сводку...")
-    chunks = split_chunks(messages)
+    messages_combined = '\n'.join(messages)
 
-    summaries = []
-    for i, chunk in enumerate(chunks, start=1):
-        print(f"Обрабатываем часть {i}/{len(chunks)}...")
-        summaries.append(summarize_text(chunk))
+    llm_request = f'''В телеграм чате случился срач. Ниже я приведу переписку, а ты расскажи об участниках, 
+    их мнениях, кто какую позицию занимает, кто с кем спорит и о чем. А в конце напиши краткий вывод 
+    и дай свою оценку, кто прав, а кто нет.\n\nПереписка:\n{messages_combined}'''
 
-    final_summary = "\n\n---\n\n".join(summaries)
     print("\n======= Сводка =======\n")
+    final_summary = summarize_text(llm_request)
     print(final_summary)
 
 
