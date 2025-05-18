@@ -7,7 +7,7 @@ from telethon import TelegramClient
 from telethon.tl.types import InputPeerChannel, InputPeerChat
 from telethon.tl.functions.messages import GetHistoryRequest
 from dotenv import load_dotenv
-import openai
+from openai import OpenAI
 
 load_dotenv()
 
@@ -15,7 +15,7 @@ API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
-openai.api_key = OPENAI_API_KEY
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Имя сессии (создастся файл session.session)
 client = TelegramClient('session', API_ID, API_HASH)
@@ -71,13 +71,13 @@ def summarize_text(text: str) -> str:
         f"Текст переписки:\n{text}\n\n"
         "Выведи основные идеи, точки зрения и выводы."
     )
-    resp = openai.ChatCompletion.create(
+    resp = openai_client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.5,
         max_tokens=500
     )
-    return resp.choices[0].message.content.strip()
+    return resp.choices[0].message.model_dump()["content"]
 
 
 async def main():
