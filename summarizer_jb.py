@@ -21,7 +21,7 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Имя сессии (создастся файл session.session)
-client = TelegramClient('session_test', API_ID, API_HASH)
+client = TelegramClient('session', API_ID, API_HASH)
 
 
 def summarize_text(text: str) -> str:

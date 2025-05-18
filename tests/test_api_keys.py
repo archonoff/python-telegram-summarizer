@@ -23,7 +23,7 @@ def test_env_vars_exist(name, value):
 
 @pytest.fixture(scope="module")
 def tg_client():
-    client = TelegramClient("session_test", int(API_ID), API_HASH)
+    client = TelegramClient("session", int(API_ID), API_HASH)
     client.start()  # may ask for a code from Telegram on the first run
     yield client
     client.disconnect()
