@@ -1,3 +1,4 @@
 /.env
 session_test.session
 *.whl
+/.idea/
