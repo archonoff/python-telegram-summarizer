@@ -1,5 +1,3 @@
-# Этот файл выдал JetBrains AI Assistant
-
 import asyncio
 import logging
 import os
