@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+import questionary
+import re
 
 from dotenv import load_dotenv
 from jinja2 import Template
@@ -31,6 +33,58 @@ MESSAGE_TEMPLATE = Template('''
 ''')
 
 
+TG_LINK_REGEX = r'https?://t\.me/([^/]+)(?:/(\d+))?/(\d+)'
+
+
+def extract_ids_from_telegram_url(url: str) -> tuple[str, int | None, int]:
+    """
+    channel_name, thread_id, message_id
+    """
+
+    match = re.match(TG_LINK_REGEX, url)
+
+    if not match:
+        msg = f'Invalid URL format: {url}. Expected: https://t.me/channel_name/message_id or https://t.me/channel_name/thread_id/message_id'
+        logger.error(msg)
+        raise ValueError(msg)
+
+    channel_name, thread_id, message_id = match.groups()
+
+    return channel_name, int(thread_id) if thread_id is not None else None, int(message_id)
+
+
+def get_message_range_from_user() -> tuple[str, int, int | None, int | None]:
+    """
+    channel_name, thread_id, start_message_id, end_message_id
+    """
+
+    start_url = questionary.text('Enter the link to the first message of the discussion').ask()
+
+    try:
+        channel_name, thread_id, start_message_id = extract_ids_from_telegram_url(start_url)
+
+        end_message_id = None
+
+        end_url = questionary.text('Enter the link to the last message of the discussion (optional)').ask()
+
+        if end_url:
+            end_channel, end_thread, end_message = extract_ids_from_telegram_url(end_url)
+
+            if end_channel != channel_name:
+                raise ValueError(f'Links must belong to the same channel: {channel_name} ≠ {end_channel}')
+
+            if end_thread != thread_id:
+                raise ValueError(f'Links must belong to the same thread: {thread_id} ≠ {end_thread}')
+
+            end_message_id = end_message
+
+        return channel_name, thread_id, start_message_id, end_message_id
+
+    except ValueError as e:
+        print(f"Error: {e}")
+        return get_message_range_from_user()
+
+
 def summarize_text(text: str) -> str:
     system_prompt = "Ты — ассистент, который кратко и чётко резюмирует обсуждение. Выделяй основные идеи, точки зрения и выводы."
     
@@ -46,13 +100,14 @@ def summarize_text(text: str) -> str:
     return resp.choices[0].message.content
 
 
-async def main():
+async def main(channel_name: str, thread_id: int | None, start_message_id: int, end_message_id: int | None):
+
     await client.start()
     logger.info('Authorized successfully.')
 
     messages = []
     messages_dict = {}
-    async for message in client.iter_messages('AnimeCellTbilisi', reply_to=357929, min_id=824943, max_id=826083, reverse=True):
+    async for message in client.iter_messages(channel_name, reply_to=thread_id, min_id=start_message_id, max_id=end_message_id, reverse=True):
         if message.text:
             messages_dict[message.id] = message.text
 
@@ -85,4 +140,5 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    channel_name, thread_id, start_message_id, end_message_id = get_message_range_from_user()
+    asyncio.run(main(channel_name, thread_id, start_message_id, end_message_id))
