@@ -22,6 +22,15 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 client = TelegramClient('session', API_ID, API_HASH)
 
 
+MESSAGE_TEMPLATE = Template('''
+{% if first_name %}{{first_name}} {% endif %}{% if last_name %}{{last_name}} {% endif %} (@{{username}}), {{datetime}}:
+{{text}}
+{% if reply_to_text %}
+(В ответ на сообщение "{{reply_to_text}}")
+{% endif %}
+''')
+
+
 def summarize_text(text: str) -> str:
     system_prompt = "Ты — ассистент, который кратко и чётко резюмирует обсуждение. Выделяй основные идеи, точки зрения и выводы."
     
@@ -35,15 +44,6 @@ def summarize_text(text: str) -> str:
     )
     
     return resp.choices[0].message.content
-
-
-MESSAGE_TEMPLATE = Template('''
-{% if first_name %}{{first_name}} {% endif %}{% if last_name %}{{last_name}} {% endif %} (@{{username}}), {{datetime}}:
-{{text}}
-{% if reply_to_text %}
-(В ответ на сообщение "{{reply_to_text}}")
-{% endif %}
-''')
 
 
 async def main():
