@@ -31,6 +31,12 @@ OPENAI_API_KEY=your_openai_api_key
    pip install -r requirements.txt
    ```
 
+## First Run Notice
+
+On the very first run, the script will prompt you to enter your Telegram account credentials (phone number, and possibly a code from Telegram).  
+This is normal and required for the script to access Telegram chats on your behalf.  
+Your session will be saved locally, so you won't need to enter these credentials again for subsequent runs.
+
 ## Usage
 
 Run the main script:
