@@ -1,6 +1,55 @@
 import pytest
 
-from summarizer import extract_ids_from_telegram_url
+from summarizer import extract_ids_from_telegram_url, get_end_message_id
+
+
+class TestGetEndMessageId:
+
+    def test_get_end_message_id_success(self):
+        """Test https://t.me/channel_name/123/456"""
+        end_url = "https://t.me/channel_name/123/456"
+        channel_name = "channel_name"
+        thread_id = 123
+        result = get_end_message_id(end_url, channel_name, thread_id)
+        assert result == 456
+
+    def test_get_end_message_id_different_channel(self):
+        """Test different channel"""
+        end_url = "https://t.me/different_channel/123/456"
+        channel_name = "channel_name"
+        thread_id = 123
+        with pytest.raises(ValueError) as excinfo:
+            get_end_message_id(end_url, channel_name, thread_id)
+        assert "Links must belong to the same channel" in str(excinfo.value)
+
+    def test_get_end_message_id_different_thread(self):
+        """Test different thread"""
+        end_url = "https://t.me/channel_name/999/456"
+        channel_name = "channel_name"
+        thread_id = 123
+        with pytest.raises(ValueError) as excinfo:
+            get_end_message_id(end_url, channel_name, thread_id)
+        assert "Links must belong to the same thread" in str(excinfo.value)
+
+    def test_get_end_message_id_no_thread_id(self):
+        """Test no thread_id"""
+        end_url = "https://t.me/channel_name/456"
+        channel_name = "channel_name"
+        thread_id = None
+        result = get_end_message_id(end_url, channel_name, thread_id)
+        assert result == 456
+
+    @pytest.mark.parametrize("url, expected_channel, expected_thread, expected_msg", [
+        ("https://t.me/channel_name/456", "channel_name", None, 456),
+        ("https://t.me/channel_name/123/456", "channel_name", 123, 456),
+        ("http://t.me/my_channel/789", "my_channel", None, 789),
+    ])
+    def test_extract_ids_from_telegram_url(self, url, expected_channel, expected_thread, expected_msg):
+        """Test various URL formats"""
+        channel, thread, msg = extract_ids_from_telegram_url(url)
+        assert channel == expected_channel
+        assert thread == expected_thread
+        assert msg == expected_msg
 
 
 class TestExtractIdsFromTelegramUrl:

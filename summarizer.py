@@ -67,7 +67,7 @@ class UserParameters:
     basic_instructions: str
 
 
-def get_end_message_id(end_url: str, channel_name: str, thread_id: int) -> int | None:
+def get_end_message_id(end_url: str, channel_name: str, thread_id: int | None) -> int | None:
     end_channel, end_thread, end_message = extract_ids_from_telegram_url(end_url)
 
     if end_channel != channel_name:
