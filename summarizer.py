@@ -118,7 +118,7 @@ def summarize_text(text: str) -> str:
     system_prompt = "Ты — ассистент, который кратко и чётко отвечает на вопросы."
     
     resp = openai_client.chat.completions.create(
-        model='gpt-4.1',
+        model='gpt-4.1-mini',
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"{text}"},
