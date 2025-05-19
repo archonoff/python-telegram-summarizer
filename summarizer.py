@@ -1,14 +1,15 @@
+import argparse
 import asyncio
 import logging
 import os
-import questionary
 import re
+from dataclasses import dataclass
 
+import questionary
 from dotenv import load_dotenv
 from jinja2 import Template
 from openai import OpenAI
 from telethon import TelegramClient
-from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -66,7 +67,19 @@ class UserParameters:
     basic_instructions: str
 
 
-def get_message_range_from_user() -> UserParameters:
+def get_end_message_id(end_url: str, channel_name: str, thread_id: int) -> int | None:
+    end_channel, end_thread, end_message = extract_ids_from_telegram_url(end_url)
+
+    if end_channel != channel_name:
+        raise ValueError(f'Links must belong to the same channel: {channel_name} ≠ {end_channel}')
+
+    if end_thread != thread_id:
+        raise ValueError(f'Links must belong to the same thread: {thread_id} ≠ {end_thread}')
+
+    return end_message
+
+
+def get_user_parameters_from_interactive_input() -> UserParameters:
     """
     channel_name, thread_id, start_message_id, end_message_id
     """
@@ -86,15 +99,7 @@ def get_message_range_from_user() -> UserParameters:
         end_url = questionary.text('Enter the link to the last message of the discussion (optional)').ask()
 
         if end_url:
-            end_channel, end_thread, end_message = extract_ids_from_telegram_url(end_url)
-
-            if end_channel != channel_name:
-                raise ValueError(f'Links must belong to the same channel: {channel_name} ≠ {end_channel}')
-
-            if end_thread != thread_id:
-                raise ValueError(f'Links must belong to the same thread: {thread_id} ≠ {end_thread}')
-
-            end_message_id = end_message
+            end_message_id = get_end_message_id(end_url, channel_name, thread_id)
 
         return UserParameters(
             channel_name=channel_name,
@@ -106,7 +111,7 @@ def get_message_range_from_user() -> UserParameters:
 
     except ValueError as e:
         print(f"Error: {e}")
-        return get_message_range_from_user()
+        return get_user_parameters_from_interactive_input()
 
 
 def summarize_text(text: str) -> str:
@@ -165,5 +170,33 @@ async def main(user_params: UserParameters):
 
 
 if __name__ == '__main__':
-    channel_name, thread_id, start_message_id, end_message_id = get_message_range_from_user()
-    asyncio.run(main(channel_name, thread_id, start_message_id, end_message_id))
+    parser = argparse.ArgumentParser(description='Telegram discussion summarizer')
+    parser.add_argument('-s', '--start-message-url', type=str, help='Telegram URL to the first message of the discussion')
+    parser.add_argument('-e', '--end-message-url', type=str, help='Telegram URL to the last message of the discussion')
+    parser.add_argument('-i', '--interactive', action='store_true', help='Run in interactive mode')
+    parser.add_argument('-l', '--llm-instructions', type=str, help='Instructions for the LLM')
+
+    args = parser.parse_args()
+
+    if args.interactive:
+        user_parameters = get_user_parameters_from_interactive_input()
+    else:
+        if not args.start_message_url:
+            parser.error('the -s/--start-message-url argument is required when not in interactive mode')
+
+        channel_name, thread_id, start_message_id = extract_ids_from_telegram_url(args.start_message_url)
+
+        end_message_id = None
+        if args.end_message_url:
+            end_message_id = get_end_message_id(args.end_message_url, channel_name, thread_id)
+
+        user_parameters = UserParameters(
+            channel_name=channel_name,
+            thread_id=thread_id,
+            start_message_id=start_message_id,
+            end_message_id=end_message_id,
+            basic_instructions=args.llm_instructions or DEFAULT_LLM_INSTRUCTIONS,
+        )
+
+
+    asyncio.run(main(user_parameters))
