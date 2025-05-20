@@ -20,11 +20,6 @@ API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
-
-# Имя сессии (создастся файл session.session)
-client = TelegramClient('session', API_ID, API_HASH)
-
 
 MESSAGE_TEMPLATE = Template('''
 {% if first_name %}{{first_name}} {% endif %}{% if last_name %}{{last_name}} {% endif %} (@{{username}}), {{datetime}}:
