@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s -
 
 load_dotenv()
 
-API_ID = int(os.getenv('API_ID', 0))
+API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
