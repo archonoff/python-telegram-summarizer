@@ -29,13 +29,13 @@ OPENAI_API_KEY=your_openai_api_key
 2. Create a virtual environment and install dependencies:
    ```
    # Create a virtual environment
-   python -m venv venv
+   python -m venv .venv
    
    # Activate the virtual environment
    # For Windows:
-   venv\Scripts\activate
+   .venv\Scripts\activate
    # For macOS/Linux:
-   source venv/bin/activate
+   source .venv/bin/activate
    
    # Install dependencies
    pip install -r requirements.txt
