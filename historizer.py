@@ -1,10 +1,12 @@
 import asyncio
 import json
-from openai import OpenAI
 import logging
-from dotenv import load_dotenv
+import os
 
-load_dotenv()
+from dotenv import load_dotenv
+from openai import OpenAI
+
+from models import ChatHistory
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
