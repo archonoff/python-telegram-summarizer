@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional, Union, Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -27,26 +26,26 @@ class BaseMessage(BaseModel):
     type: str
     date: datetime
     date_unixtime: str
-    text: Union[str, list[Any]] = ""
+    text: str | list = ""
     text_entities: list[TextEntity] = []
 
 
 class ServiceMessage(BaseMessage):
-    actor: Optional[str] = None
-    actor_id: Optional[str] = None
+    actor: str | None = None
+    actor_id: str | None = None
     action: str
-    members: Optional[List[Optional[str]]] = None
-    message_id: Optional[int] = None
-    title: Optional[str] = None
+    members: list[str | None] | None = None
+    message_id: int | None = None
+    title: str | None = None
 
 
 class UserMessage(BaseMessage):
-    from_: Optional[str] = Field(default=None, alias='from')
-    from_id: Optional[str] = None
-    edited: Optional[datetime] = None
-    edited_unixtime: Optional[str] = None
-    reply_to_message_id: Optional[int] = None
-    reactions: Optional[List[Reaction]] = None
+    from_: str | None = Field(default=None, alias='from')
+    from_id: str | None = None
+    edited: datetime | None = None
+    edited_unixtime: str | None = None
+    reply_to_message_id: int | None = None
+    reactions: list[Reaction] | None = None
 
     @field_validator('text')
     @classmethod
