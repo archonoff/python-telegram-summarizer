@@ -11,6 +11,12 @@ from models import ChatHistory
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 
+load_dotenv()
+
+API_ID = int(os.getenv('API_ID', 0))
+API_HASH = os.getenv('API_HASH')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
 
 CHUNK_SUMMARY_PROMPT = (
     'Ты — историк и документатор сообщества «Аниме Ячейка».\n'
