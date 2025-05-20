@@ -199,8 +199,6 @@ if __name__ == '__main__':
         )
 
     openai_client = OpenAI(api_key=OPENAI_API_KEY)
-
-    # Имя сессии (создастся файл session.session)
     client = TelegramClient('session', API_ID, API_HASH)
 
     asyncio.run(main(user_parameters))
