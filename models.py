@@ -26,7 +26,7 @@ class BaseMessage(BaseModel):
     type: str
     date: datetime
     date_unixtime: str
-    text: str | list = ""
+    text: str | list = ''
     text_entities: list[TextEntity] = []
 
 
@@ -51,7 +51,7 @@ class UserMessage(BaseMessage):
     @classmethod
     def process_text(cls, v):
         if isinstance(v, list):
-            result = ""
+            result = ''
             for item in v:
                 if isinstance(item, str):
                     result += item
