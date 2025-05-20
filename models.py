@@ -9,7 +9,7 @@ class TextEntity(BaseModel):
 
 
 class ReactionUser(BaseModel):
-    from_: str = Field(alias='from')
+    from_: str | None = Field(default=None, alias='from')
     from_id: str
     date: datetime
 
