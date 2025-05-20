@@ -18,7 +18,7 @@ class Reaction(BaseModel):
     type: str
     count: int
     emoji: str
-    recent: list[ReactionUser]
+    recent: list[ReactionUser] | None = None
 
 
 class BaseMessage(BaseModel):
