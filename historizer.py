@@ -53,9 +53,9 @@ FINAL_SUMMARY_PROMPT = (
 
 async def load_chat_history(file_path: str) -> ChatHistory:
     logger.info(f'Loading chat history from {file_path}')
-    async with open(file_path, 'r', encoding='utf-8') as file:
-        raw_chat_history = json.load(file)
-    chat_history = ChatHistory.model_validate_json(raw_chat_history)
+    with open(file_path, 'r', encoding='utf-8') as file:
+        chat_history = ChatHistory.model_validate_json(file.read())
+    logger.info(f'Chat history loaded: {len(chat_history.messages)} messages')
     return chat_history
 
 
