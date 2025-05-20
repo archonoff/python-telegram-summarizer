@@ -7,7 +7,7 @@ from telethon.sync import TelegramClient
 
 load_dotenv()
 
-API_ID = os.getenv("API_ID")
+API_ID = os.getenv("API_ID", 0)
 API_HASH = os.getenv("API_HASH")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -24,7 +24,7 @@ def test_env_vars_exist(name, value):
 @pytest.fixture(scope="module")
 def tg_client():
     client = TelegramClient("session", int(API_ID), API_HASH)
-    client.start()  # may ask for a code from Telegram on the first run
+    client.start()  # may ask for a code and password from Telegram on the first run
     yield client
     client.disconnect()
 
@@ -37,7 +37,6 @@ def test_telegram_authentication(tg_client):
 
 def test_openai_api_key():
     client = OpenAI(api_key=OPENAI_API_KEY)
-    models = client.models.list()  # Request for a list of models
-    # Check that the response is a list
+    models = client.models.list()
     assert hasattr(models, "data"), "Response does not contain .data"
     assert isinstance(models.data, list), "Expected a list of models"

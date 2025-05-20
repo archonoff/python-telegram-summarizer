@@ -16,14 +16,9 @@ logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s -
 
 load_dotenv()
 
-API_ID = int(os.getenv('API_ID'))
+API_ID = int(os.getenv('API_ID', 0))
 API_HASH = os.getenv('API_HASH')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
-
-# Имя сессии (создастся файл session.session)
-client = TelegramClient('session', API_ID, API_HASH)
 
 
 MESSAGE_TEMPLATE = Template('''
@@ -198,5 +193,7 @@ if __name__ == '__main__':
             basic_instructions=args.llm_instructions or DEFAULT_LLM_INSTRUCTIONS,
         )
 
+    openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    client = TelegramClient('session', API_ID, API_HASH)
 
     asyncio.run(main(user_parameters))
