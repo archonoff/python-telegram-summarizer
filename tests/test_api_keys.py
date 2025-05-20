@@ -7,7 +7,7 @@ from telethon.sync import TelegramClient
 
 load_dotenv()
 
-API_ID = os.getenv("API_ID")
+API_ID = os.getenv("API_ID", 0)
 API_HASH = os.getenv("API_HASH")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
