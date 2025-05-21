@@ -17,7 +17,7 @@ class ReactionUser(BaseModel):
 class Reaction(BaseModel):
     type: str
     count: int
-    emoji: str
+    emoji: str | None = None
     recent: list[ReactionUser] | None = None
 
 
