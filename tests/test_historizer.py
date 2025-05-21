@@ -53,7 +53,8 @@ class TestSplitChatHistory:
 
         with patch('historizer.logger') as mock_logger:
             await split_chat_history(test_list, chunk_size=chunk_size)
-            mock_logger.info.assert_called_once_with(f'Splitting chat history into chunks of size {chunk_size}')
+            assert mock_logger.info.call_count == 2
+            mock_logger.info.assert_any_call(f'Splitting chat history into chunks of size {chunk_size}')
 
     @pytest.mark.asyncio
     async def test_split_chat_history_default_chunk_size(self):

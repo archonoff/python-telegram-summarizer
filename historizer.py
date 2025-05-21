@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import os
 
@@ -61,7 +60,9 @@ async def load_chat_history(file_path: str) -> ChatHistory:
 
 async def split_chat_history(chat_history: list, chunk_size: int = 10000) -> list:
     logger.info(f'Splitting chat history into chunks of size {chunk_size}')
-    return [chat_history[i:i + chunk_size] for i in range(0, len(chat_history), chunk_size)]
+    chunks = [chat_history[i:i + chunk_size] for i in range(0, len(chat_history), chunk_size)]
+    logger.info(f'Chat history split into {len(chunks)} chunks')
+    return chunks
 
 
 async def main():
