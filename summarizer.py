@@ -29,8 +29,8 @@ MESSAGE_TEMPLATE = Template('''
 {% endif %}
 ''')
 
-DEFAULT_LLM_INSTRUCTIONS = f'''В телеграм чате случился срач. Ниже я приведу переписку, а ты расскажи об участниках, 
-их мнениях, кто какую позицию занимает, кто с кем спорит и о чем. А в конце напиши краткий вывод 
+DEFAULT_LLM_INSTRUCTIONS = '''В телеграм чате случился срач. Ниже я приведу переписку, а ты расскажи об участниках,
+их мнениях, кто какую позицию занимает, кто с кем спорит и о чем. А в конце напиши краткий вывод
 и дай свою оценку, кто прав, а кто нет.'''
 
 TG_LINK_REGEX = r'https?://t\.me/([^/]+)(?:/(\d+))?/(\d+)'
@@ -111,7 +111,7 @@ def get_user_parameters_from_interactive_input() -> UserParameters:
 
 def summarize_text(text: str) -> str:
     system_prompt = "Ты — ассистент, который кратко и чётко отвечает на вопросы."
-    
+
     resp = openai_client.chat.completions.create(
         model='gpt-4.1-mini',
         messages=[
@@ -120,7 +120,7 @@ def summarize_text(text: str) -> str:
         ],
         temperature=0.3,
     )
-    
+
     return resp.choices[0].message.content
 
 
