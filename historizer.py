@@ -130,6 +130,15 @@ class Historizer:
         logger.info('Chunk summarized successfully')
         return response.content
 
+    async def summarize_final(self, summarized_chunks: list, chat_model) -> str:
+        logger.info('Summarizing final history from summarized chunks')
+        summaries_content = '\n\n'.join(summarized_chunks)
+        content = FINAL_SUMMARY_PROMPT.format(summaries=summaries_content)
+        messages = [HumanMessage(content=content)]
+        response = await chat_model.ainvoke(messages)
+        logger.info('Final history summarized successfully')
+        return response.content
+
     async def run(self):
         chat_history = await load_chat_history('chat_history/result.json')
         chat_history_chunks = await split_chat_history(chat_history.messages, chunk_size=self.chunk_size)
@@ -142,7 +151,14 @@ class Historizer:
             logger.info(f'Summarizing chunk {i + 1}/{len(chat_history_chunks)}')
             chunk_summary = await self.summarize_chunk(chunk, chat_model)
             summarized_chunks.append(chunk_summary)
-        pass
+
+        logger.info('All chunks summarized, now summarizing final history')
+
+        final_summary = await self.summarize_final(summarized_chunks, chat_model)
+        logger.info('Final history summary completed')
+
+        with open('chat_history/final_summary.txt', 'w', encoding='utf-8') as file:
+            file.write(final_summary)
 
 
 if __name__ == '__main__':
