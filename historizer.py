@@ -31,9 +31,11 @@ CHUNK_SUMMARY_PROMPT = (
     '  - «Война с двачерами» — конфликт с участниками из «двача».\n'
     '  - «Нападение польских хакеров» — взлом и флуд-атаки ботами.\n'
     '  - «Появление чувака с бесконечными обезьянами» — запуск мем-бота.\n\n'
-    'Исходные сообщения:\n{documents}\n'
-    '**Отправь результат** в виде упорядоченного списка (1., 2., 3., …).'
+    'Исходные сообщения:\n{documents}\n\n'
+    '**Отправь результат** в виде упорядоченного списка (1., 2., 3., ...).'
 )
+
+
 FINAL_SUMMARY_PROMPT = (
     'Ты — профессиональный историк сообщества «Аниме Ячейка».\n'
     'У тебя есть локальные сводки по хронологическим отрезкам:\n{summaries}\n\n'
@@ -53,15 +55,13 @@ FINAL_SUMMARY_PROMPT = (
 
 
 USER_MESSAGE_TEMPLATE = Template('''
+USER MESSAGE:
 {% if from_ %}{{from_}} {% endif %}
 {{datetime}}
 {% if text %}{{text}}{% else %}(в этом сообщении нет текста){% endif %}
-{% if reply_to.text %}
-(В ответ на сообщение "{{reply_to.text}}"{% if reply_to.from %} от {{reply_to.from}}{% endif %})
-{% endif %}
-{% if reactions %}
-Поставленные реакции: {% for reaction in reactions %}{{reaction.emoji}} ({{reaction.count}}) {% endfor %}
-{% endif %}
+{% if reply_to.text %}(В ответ на сообщение "{{reply_to.text}}"{% if reply_to.from_ %} от {{reply_to.from_}}{% endif %}){% endif %}
+{% if reactions %}Поставленные реакции: {% for reaction in reactions %}{{reaction.emoji}} ({{reaction.count}}) {% endfor %}{% endif %}
+------------------------
 ''')
 
 
@@ -70,6 +70,7 @@ SERVICE MESSAGE:
 {% if datetime %}{{datetime}} {% endif %}
 {% if action %}action = {{action}} {% endif %}
 {% if actor %}actor = {{actor}} {% endif %}
+------------------------
 ''')
 
 
