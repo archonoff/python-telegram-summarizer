@@ -29,6 +29,22 @@ class BaseMessage(BaseModel):
     text: str | list = ''
     text_entities: list[TextEntity] = []
 
+    # Media fields
+    file: str | None = None
+    file_name: str | None = None
+    file_size: int | None = None
+    thumbnail: str | None = None
+    thumbnail_file_size: int | None = None
+    media_type: str | None = None
+    sticker_emoji: str | None = None
+    mime_type: str | None = None
+    width: int | None = None
+    height: int | None = None
+
+    # Photo fields
+    photo: str | None = None
+    photo_file_size: int | None = None
+
 
 class ServiceMessage(BaseMessage):
     actor: str | None = None
