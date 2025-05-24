@@ -225,7 +225,7 @@ class Historizer:
         chat_history_chunks = await split_chat_history(chat_history.messages, chunk_size=self.chunk_size)
 
         chunks_chat_model = ChatOpenAI(model='gpt-4.1-nano', temperature=0.3, api_key=OPENAI_API_KEY)
-        final_chat_model = ChatOpenAI(model='gpt-4.1-mini', temperature=0.3, api_key=OPENAI_API_KEY)
+        final_chat_model = ChatOpenAI(model='gpt-4.1-mini', temperature=0.3, api_key=OPENAI_API_KEY)        # mini model for larger tpm limits
         logger.info('Chat models initialized')
 
         summarized_chunks = []
