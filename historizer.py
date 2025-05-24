@@ -1,6 +1,9 @@
 import asyncio
+import hashlib
+import json
 import logging
 import os
+import pathlib
 
 from dotenv import load_dotenv
 from jinja2 import Template
@@ -17,6 +20,10 @@ load_dotenv()
 API_ID = int(os.getenv('API_ID', 0))
 API_HASH = os.getenv('API_HASH')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
+
+CACHE_DIR = 'chat_history/cache'
+SUMMARY_DIR = 'chat_history/summaries'
 
 
 CHUNK_SUMMARY_PROMPT = (
@@ -76,6 +83,11 @@ SERVICE MESSAGE:
 ''')
 
 
+def ensure_dirs_exist():
+    pathlib.Path(CACHE_DIR).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(SUMMARY_DIR).mkdir(parents=True, exist_ok=True)
+
+
 async def load_chat_history(file_path: str) -> ChatHistory:
     logger.info(f'Loading chat history from {file_path}')
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -97,6 +109,7 @@ class Historizer:
 
     def __init__(self, chunk_size: int = 10000):
         self.chunk_size = chunk_size
+        ensure_dirs_exist()
 
     def render_message(self, message: UserMessage | ServiceMessage) -> str:
         self.messages_dict[message.id] = message
@@ -121,14 +134,54 @@ class Historizer:
         else:
             raise ValueError(f'Unknown message type: {type(message)}')
 
+    def get_chunk_hash(self, chunk: list) -> str:
+        # Use first and last messages to identify a chunk
+        first_msg = chunk[0]
+        last_msg = chunk[-1]
+        chunk_id = f"{first_msg.id}_{last_msg.id}_{len(chunk)}"
+        return hashlib.md5(chunk_id.encode()).hexdigest()
+
+    def get_cache_path(self, chunk_hash: str) -> str:
+        return os.path.join(CACHE_DIR, f"chunk_{chunk_hash}.json")
+
+    def is_cached(self, chunk_hash: str) -> bool:
+        cache_path = self.get_cache_path(chunk_hash)
+        return os.path.exists(cache_path)
+
+    def load_from_cache(self, chunk_hash: str) -> str:
+        cache_path = self.get_cache_path(chunk_hash)
+        if not os.path.exists(cache_path):
+            raise FileNotFoundError(f"Cache file not found: {cache_path}")
+
+        with open(cache_path, 'r', encoding='utf-8') as f:
+            data = f.read()
+
+        return data
+
+    def save_to_cache(self, chunk_hash: str, summary: str):
+        cache_path = self.get_cache_path(chunk_hash)
+
+        with open(cache_path, 'w', encoding='utf-8') as f:
+            f.write(summary)
+
     async def summarize_chunk(self, chunk: list, chat_model) -> str:
-        logger.info(f'Summarizing chunk of size {len(chunk)}')
+        chunk_hash = self.get_chunk_hash(chunk)
+
+        if self.is_cached(chunk_hash):
+            logger.info(f'Using cached summary for chunk with hash {chunk_hash}')
+            return self.load_from_cache(chunk_hash)
+
+        logger.info(f'Summarizing chunk of size {len(chunk)} with hash {chunk_hash}')
         messages_content = [self.render_message(msg) for msg in chunk]
         content = CHUNK_SUMMARY_PROMPT.format(documents='\n\n'.join(messages_content))
         messages = [HumanMessage(content=content)]
         response = await chat_model.ainvoke(messages)
-        logger.info('Chunk summarized successfully')
-        return response.content
+        summary = response.content
+
+        self.save_to_cache(chunk_hash, summary)
+
+        logger.info('Chunk summarized successfully and cached')
+        return summary
 
     async def summarize_final(self, summarized_chunks: list, chat_model) -> str:
         logger.info('Summarizing final history from summarized chunks')
@@ -136,8 +189,14 @@ class Historizer:
         content = FINAL_SUMMARY_PROMPT.format(summaries=summaries_content)
         messages = [HumanMessage(content=content)]
         response = await chat_model.ainvoke(messages)
-        logger.info('Final history summarized successfully')
-        return response.content
+        final_summary = response.content
+
+        final_summary_path = os.path.join(SUMMARY_DIR, "final_summary.txt")
+        with open(final_summary_path, 'w', encoding='utf-8') as f:
+            f.write(final_summary)
+
+        logger.info(f'Final summary created and saved to {final_summary_path}')
+        return final_summary
 
     async def run(self):
         chat_history = await load_chat_history('chat_history/result.json')
@@ -152,13 +211,10 @@ class Historizer:
             chunk_summary = await self.summarize_chunk(chunk, chat_model)
             summarized_chunks.append(chunk_summary)
 
-        logger.info('All chunks summarized, now summarizing final history')
-
         final_summary = await self.summarize_final(summarized_chunks, chat_model)
-        logger.info('Final history summary completed')
 
-        with open('chat_history/final_summary.txt', 'w', encoding='utf-8') as file:
-            file.write(final_summary)
+        logger.info('All processing completed successfully')
+        return final_summary
 
 
 if __name__ == '__main__':
