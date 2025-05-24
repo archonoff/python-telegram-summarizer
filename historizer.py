@@ -98,7 +98,6 @@ class Historizer:
     def __init__(self, chunk_size: int = 10000):
         self.chunk_size = chunk_size
 
-    # todo проверить и доделать
     def render_message(self, message: UserMessage | ServiceMessage) -> str:
         self.messages_dict[message.id] = message
 
