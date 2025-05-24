@@ -50,6 +50,27 @@ FINAL_SUMMARY_PROMPT = (
 )
 
 
+USER_MESSAGE_TEMPLATE = Template('''
+{% if from_ %}{{from_}} {% endif %}
+{{datetime}}
+{% if text %}{{text}}{% else %}(в этом сообщении нет текста){% endif %}
+{% if reply_to.text %}
+(В ответ на сообщение "{{reply_to.text}}"{% if reply_to.from %} от {{reply_to.from}}{% endif %})
+{% endif %}
+{% if reactions %}
+Поставленные реакции: {% for reaction in reactions %}{{reaction.emoji}} ({{reaction.count}}) {% endfor %}
+{% endif %}
+''')
+
+
+SERVICE_MESSAGE_TEMPLATE = Template('''
+SERVICE MESSAGE:
+{% if datetime %}{{datetime}} {% endif %}
+{% if action %}action = {{action}} {% endif %}
+{% if actor %}actor = {{actor}} {% endif %}
+''')
+
+
 async def load_chat_history(file_path: str) -> ChatHistory:
     logger.info(f'Loading chat history from {file_path}')
     with open(file_path, 'r', encoding='utf-8') as file:
