@@ -224,16 +224,17 @@ class Historizer:
         chat_history = await load_chat_history('chat_history/result.json')
         chat_history_chunks = await split_chat_history(chat_history.messages, chunk_size=self.chunk_size)
 
-        chat_model = ChatOpenAI(model='gpt-4.1-mini', temperature=0.3, openai_api_key=OPENAI_API_KEY)
-        logger.info('Chat model initialized')
+        chunks_chat_model = ChatOpenAI(model='gpt-4.1-nano', temperature=0.3, api_key=OPENAI_API_KEY)
+        final_chat_model = ChatOpenAI(model='gpt-4.1', temperature=0.3, api_key=OPENAI_API_KEY)
+        logger.info('Chat models initialized')
 
         summarized_chunks = []
         for i, chunk in enumerate(chat_history_chunks):
             logger.info(f'Summarizing chunk {i + 1}/{len(chat_history_chunks)}')
-            chunk_summary = await self.summarize_chunk(chunk, chat_model)
+            chunk_summary = await self.summarize_chunk(chunk, chunks_chat_model)
             summarized_chunks.append(chunk_summary)
 
-        final_summary = await self.summarize_final(summarized_chunks, chat_model)
+        final_summary = await self.summarize_final(summarized_chunks, final_chat_model)
 
         logger.info('All processing completed successfully')
         return final_summary
