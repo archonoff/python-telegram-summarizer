@@ -88,12 +88,56 @@ async def split_chat_history(chat_history: list, chunk_size: int = 10000) -> lis
     return chunks
 
 
-async def main():
-    chat_history = await load_chat_history('chat_history/result.json')
-    chat_history_chunks = await split_chat_history(chat_history, chunk_size=10000)
+class Historizer:
+    messages_dict = {}
 
-    chunk = chat_history_chunks[0]
+    # todo проверить и доделать
+    def render_message(self, message: UserMessage | ServiceMessage) -> str:
+        self.messages_dict[message.id] = message
+
+        if isinstance(message, UserMessage):
+            reply_to = self.messages_dict.get(message.reply_to_message_id, None) if message.reply_to_message_id else None
+            return USER_MESSAGE_TEMPLATE.render(
+                from_=message.from_,
+                datetime=message.date.strftime("%Y-%m-%d %H:%M:%S"),
+                text=message.text,
+                reply_to=reply_to,
+                reactions=message.reactions,
+            )
+        elif isinstance(message, ServiceMessage):
+            return SERVICE_MESSAGE_TEMPLATE.render(
+                datetime=message.date.strftime("%Y-%m-%d %H:%M:%S"),
+                action=message.action,
+                actor=message.actor,
+            )
+        else:
+            raise ValueError(f'Unknown message type: {type(message)}')
+
+    async def summarize_chunk(self, chunk: list, chat_model) -> str:
+        logger.info(f'Summarizing chunk of size {len(chunk)}')
+        documents = [Document(page_content=self.render_message(msg)) for msg in chunk]
+        prompt = [{'role': 'user', 'content': CHUNK_SUMMARY_PROMPT.format(documents='\n\n'.join([doc.page_content for doc in documents]))}]
+        response = await chat_model(prompt)
+        logger.info('Chunk summarized successfully')
+        return response['choices'][0]['message']['content']
+
+    async def run(self):
+        chat_history = await load_chat_history('chat_history/result.json')
+        chat_history_chunks = await split_chat_history(chat_history.messages[:10], chunk_size=10)       # todo убрать 10
+
+        chat_model = ChatOpenAI(model='gpt-4.1-mini', temperature=0.3, openai_api_key=OPENAI_API_KEY)
+        logger.info('Chat model initialized')
+
+        chunk = chat_history_chunks[0]
+
+        summarized_chunks = []
+        for i, chunk in enumerate(chat_history_chunks):
+            logger.info(f'Summarizing chunk {i + 1}/{len(chat_history_chunks)}')
+            chunk_summary = await self.summarize_chunk(chunk, chat_model)
+            summarized_chunks.append(chunk_summary)
+        pass
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    historizer = Historizer()
+    asyncio.run(historizer.run())
