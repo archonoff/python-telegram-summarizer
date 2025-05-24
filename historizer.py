@@ -241,5 +241,5 @@ class Historizer:
 
 
 if __name__ == '__main__':
-    historizer = Historizer(chunk_size=8000)
+    historizer = Historizer(chunk_size=6000)
     asyncio.run(historizer.run())
