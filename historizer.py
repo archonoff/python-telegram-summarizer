@@ -90,7 +90,11 @@ async def split_chat_history(chat_history: list, chunk_size: int = 10000) -> lis
 
 
 class Historizer:
+    chunk_size: int
     messages_dict = {}
+
+    def __init__(self, chunk_size: int = 10000):
+        self.chunk_size = chunk_size
 
     # todo проверить и доделать
     def render_message(self, message: UserMessage | ServiceMessage) -> str:
@@ -125,7 +129,7 @@ class Historizer:
 
     async def run(self):
         chat_history = await load_chat_history('chat_history/result.json')
-        chat_history_chunks = await split_chat_history(chat_history.messages[:10], chunk_size=10)       # todo убрать 10
+        chat_history_chunks = await split_chat_history(chat_history.messages, chunk_size=self.chunk_size)
 
         chat_model = ChatOpenAI(model='gpt-4.1-mini', temperature=0.3, openai_api_key=OPENAI_API_KEY)
         logger.info('Chat model initialized')
@@ -139,5 +143,5 @@ class Historizer:
 
 
 if __name__ == '__main__':
-    historizer = Historizer()
+    historizer = Historizer(chunk_size=10000)
     asyncio.run(historizer.run())
