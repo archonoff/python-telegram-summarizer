@@ -142,7 +142,7 @@ class Historizer:
         return hashlib.md5(chunk_id.encode()).hexdigest()
 
     def get_cache_path(self, chunk_hash: str) -> str:
-        return os.path.join(CACHE_DIR, f"chunk_{chunk_hash}.json")
+        return os.path.join(CACHE_DIR, f"chunk_{chunk_hash}.txt")
 
     def is_cached(self, chunk_hash: str) -> bool:
         cache_path = self.get_cache_path(chunk_hash)
