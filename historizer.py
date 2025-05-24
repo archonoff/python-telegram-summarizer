@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from jinja2 import Template
 from langchain.chat_models import ChatOpenAI
-from langchain.docstore.document import Document
+from langchain.schema import HumanMessage
 
 from models import ChatHistory, UserMessage, ServiceMessage
 
@@ -116,11 +116,12 @@ class Historizer:
 
     async def summarize_chunk(self, chunk: list, chat_model) -> str:
         logger.info(f'Summarizing chunk of size {len(chunk)}')
-        documents = [Document(page_content=self.render_message(msg)) for msg in chunk]
-        prompt = [{'role': 'user', 'content': CHUNK_SUMMARY_PROMPT.format(documents='\n\n'.join([doc.page_content for doc in documents]))}]
-        response = await chat_model(prompt)
+        messages_content = [self.render_message(msg) for msg in chunk]
+        content = CHUNK_SUMMARY_PROMPT.format(documents='\n\n'.join(messages_content))
+        messages = [HumanMessage(content=content)]
+        response = await chat_model.ainvoke(messages)
         logger.info('Chunk summarized successfully')
-        return response['choices'][0]['message']['content']
+        return response.content
 
     async def run(self):
         chat_history = await load_chat_history('chat_history/result.json')
