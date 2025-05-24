@@ -129,8 +129,6 @@ class Historizer:
         chat_model = ChatOpenAI(model='gpt-4.1-mini', temperature=0.3, openai_api_key=OPENAI_API_KEY)
         logger.info('Chat model initialized')
 
-        chunk = chat_history_chunks[0]
-
         summarized_chunks = []
         for i, chunk in enumerate(chat_history_chunks):
             logger.info(f'Summarizing chunk {i + 1}/{len(chat_history_chunks)}')
