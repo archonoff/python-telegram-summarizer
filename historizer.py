@@ -3,9 +3,11 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from jinja2 import Template
+from langchain.chat_models import ChatOpenAI
+from langchain.docstore.document import Document
 
-from models import ChatHistory
+from models import ChatHistory, UserMessage, ServiceMessage
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
