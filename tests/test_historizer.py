@@ -1,8 +1,14 @@
-from unittest.mock import patch
+import hashlib
+from unittest.mock import patch, MagicMock
 
 import pytest
 
-from historizer import split_chat_history
+from historizer import split_chat_history, ensure_dirs_exist, CACHE_DIR, SUMMARY_DIR, Historizer
+
+
+@pytest.fixture
+def historizer():
+    return Historizer()
 
 
 class TestSplitChatHistory:
@@ -66,3 +72,32 @@ class TestSplitChatHistory:
         assert len(result) == 2
         assert len(result[0]) == default_chunk_size
         assert len(result[1]) == len(test_list) - default_chunk_size
+
+
+def test_ensure_dirs_exist():
+    mock_cache_path = MagicMock()
+    mock_summary_path = MagicMock()
+
+    with patch('historizer.pathlib.Path') as mock_path:
+        mock_path.side_effect = lambda x: mock_cache_path if x == CACHE_DIR else mock_summary_path
+
+        ensure_dirs_exist()
+
+        mock_path.assert_any_call(CACHE_DIR)
+        mock_path.assert_any_call(SUMMARY_DIR)
+
+        mock_cache_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+        mock_summary_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+
+
+def test_get_chunk_hash_single_message(historizer):
+    msg = MagicMock()
+    msg.id = 123
+
+    chunk = [msg]
+    chunk_id = f"{msg.id}_{msg.id}_{len(chunk)}"
+    expected_hash = hashlib.md5(chunk_id.encode()).hexdigest()
+
+    result = historizer.get_chunk_hash(chunk)
+
+    assert result == expected_hash
