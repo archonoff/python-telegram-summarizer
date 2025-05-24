@@ -57,10 +57,12 @@ FINAL_SUMMARY_PROMPT = (
 USER_MESSAGE_TEMPLATE = Template('''
 USER MESSAGE:
 {% if from_ %}{{from_}} {% endif %}
-{{datetime}}
-{% if text %}{{text}}{% else %}(в этом сообщении нет текста){% endif %}
-{% if reply_to.text %}(В ответ на сообщение "{{reply_to.text}}"{% if reply_to.from_ %} от {{reply_to.from_}}{% endif %}){% endif %}
-{% if reactions %}Поставленные реакции: {% for reaction in reactions %}{{reaction.emoji}} ({{reaction.count}}) {% endfor %}{% endif %}
+{{datetime}}{% if text %}
+{{text}}{% endif %}{% if sticker_emoji %}
+К этому сообщению прикреплён стикер с эмодзи {{sticker_emoji}}{% endif %}{% if photo %}
+К этому сообщению прикреплено фото{% endif %}{% if reply_to.text %}
+(В ответ на сообщение "{{reply_to.text|truncate(100, true, '...')}}"{% if reply_to.from_ %} от {{reply_to.from_}}{% endif %}){% endif %}{% if reactions %}
+Поставленные реакции: {% for reaction in reactions %}{{reaction.emoji}} ({{reaction.count}}) {% endfor %}{% endif %}
 ------------------------
 ''')
 
@@ -108,6 +110,8 @@ class Historizer:
                 text=message.text,
                 reply_to=reply_to,
                 reactions=message.reactions,
+                sticker_emoji=message.sticker_emoji,
+                photo=message.photo,
             )
         elif isinstance(message, ServiceMessage):
             return SERVICE_MESSAGE_TEMPLATE.render(
@@ -143,5 +147,5 @@ class Historizer:
 
 
 if __name__ == '__main__':
-    historizer = Historizer(chunk_size=10000)
+    historizer = Historizer(chunk_size=8000)
     asyncio.run(historizer.run())
