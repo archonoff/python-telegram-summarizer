@@ -6,8 +6,8 @@ import pathlib
 
 from dotenv import load_dotenv
 from jinja2 import Template
-from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage
+from langchain_community.chat_models import ChatOpenAI
 
 from models import ChatHistory, UserMessage, ServiceMessage
 
