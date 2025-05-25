@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from jinja2 import Template
 from langchain.schema import HumanMessage
 from langchain_community.chat_models import ChatOpenAI
+from openai import RateLimitError
 
 from models import ChatHistory, UserMessage, ServiceMessage
 
@@ -194,15 +195,41 @@ class Historizer:
             return self.load_from_cache(chunk_hash)
 
         logger.info(f'Summarizing chunk of size {len(chunk)} with hash {chunk_hash}')
-        messages_content = [self.render_message(msg) for msg in chunk]
-        content = CHUNK_SUMMARY_PROMPT.format(documents='\n\n'.join(messages_content))
-        messages = [HumanMessage(content=content)]
-        response = await chat_model.ainvoke(messages)
-        summary = response.content
 
-        self.save_to_cache(chunk_hash, summary)
+        try:
+            messages_content = [self.render_message(msg) for msg in chunk]
+            content = CHUNK_SUMMARY_PROMPT.format(documents='\n\n'.join(messages_content))
+            messages = [HumanMessage(content=content)]
+            response = await chat_model.ainvoke(messages)
+            summary = response.content
 
-        logger.info('Chunk summarized successfully and cached')
+            self.save_to_cache(chunk_hash, summary)
+            logger.info('Chunk summarized successfully and cached')
+
+        except RateLimitError as e:
+            error_message = str(e).lower()
+
+            if 'too large' in error_message:
+                logger.warning(f'Chunk too large for context window, splitting in half: {e}')
+
+                middle = len(chunk) // 2
+                first_half = chunk[:middle]
+                second_half = chunk[middle:]
+
+                logger.info(f'Splitting chunk of size {len(chunk)} into two chunks of sizes {len(first_half)} and {len(second_half)}')
+
+                first_summary = await self.summarize_chunk(first_half, chat_model)
+                second_summary = await self.summarize_chunk(second_half, chat_model)
+
+                summary = f"{first_summary}\n\n{second_summary}"
+
+                self.save_to_cache(chunk_hash, summary)
+
+                logger.info('Split chunks summarized successfully and combined result cached')
+            else:
+                logger.error(f'Error during chunk summarization: {e}')
+                raise
+
         return summary
 
     async def summarize_final(self, summarized_chunks: list, chat_model) -> str:
