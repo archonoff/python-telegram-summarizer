@@ -3,6 +3,7 @@ import hashlib
 import logging
 import os
 import pathlib
+from datetime import datetime
 
 from dotenv import load_dotenv
 from jinja2 import Template
@@ -24,6 +25,7 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 CACHE_DIR = 'chat_history/cache'
 SUMMARY_DIR = 'chat_history/summaries'
+TODAY = datetime.now().strftime('%Y-%m-%d')
 
 
 CHUNK_SUMMARY_PROMPT = (
@@ -50,6 +52,27 @@ CHUNK_SUMMARY_PROMPT = (
     'Не ограничивайся приведенными примерами — выявляй любые события, формирующие уникальную историю и культуру «Аниме Ячейки».\n\n'
     'Проанализируй следующие сообщения из чата:\n{documents}\n\n'
     'Представь результаты анализа в виде хронологического списка событий (1., 2., 3., ...).'
+)
+
+
+GROUP_SUMMARY_PROMPT = (
+    'Ты — историк сообщества «Аниме Ячейка», систематизирующий хронологические записи.\n'
+    'Перед тобой — набор исторических заметок, описывающих различные события в жизни сообщества:\n\n{summaries}\n\n'
+    'Твоя задача — объединить эти записи в **структурированный временной отрезок истории сообщества**.\n\n'
+    'В своём анализе:\n'
+    '1. Систематизируй описанные события в хронологическом порядке\n'
+    '2. Объедини повторяющиеся или связанные события в логические группы\n'
+    '3. Выдели ключевые конфликты, персонажей и мемы, появляющиеся в этом временном отрезке\n'
+    '4. Определи характерные тенденции и особенности этого периода\n'
+    '5. Сохрани датировку событий и их основное содержание\n\n'
+    'Особое внимание удели:\n'
+    '- Последовательности событий и их причинно-следственным связям\n'
+    '- Конфликтам и их участникам\n'
+    '- Появлению новых значимых персонажей\n'
+    '- Формированию локальных мемов и традиций\n\n'
+    'Твоя цель — создать промежуточную историческую сводку, которая позже станет частью полной летописи сообщества.\n'
+    'Представь результат в виде хронологического списка событий с датами, названиями и кратким описанием.\n'
+    f'Кстати, сегодня {TODAY}, так что смотри не залезь в будущее'
 )
 
 
@@ -80,7 +103,8 @@ FINAL_SUMMARY_PROMPT = (
     '1. [Дата]: [Событие] — [краткое описание]\n'
     '2. [Дата]: [Событие] — [краткое описание]\n'
     '[и так далее для каждой эпохи]\n\n'
-    'В завершение истории сделай краткий эпилог о том, какой путь прошло сообщество и что делает «Аниме Ячейку» особенным культурным феноменом.'
+    'В завершение истории сделай краткий эпилог о том, какой путь прошло сообщество и что делает «Аниме Ячейку» особенным культурным феноменом.\n'
+    f'Кстати, сегодня {TODAY}, так что смотри не залезь в будущее'
 )
 
 
@@ -247,12 +271,49 @@ class Historizer:
         logger.info(f'Final summary created and saved to {final_summary_path}')
         return final_summary
 
+    async def summarize_final_in_groups(self, summarized_chunks: list, group_chat_model, final_chat_model, group_size=100) -> str:
+        logger.info('Summarizing final history from summarized chunks in groups')
+
+        groups = [summarized_chunks[i:i + group_size] for i in range(0, len(summarized_chunks), group_size)]
+
+        logger.info(f'Split {len(summarized_chunks)} chunks into {len(groups)} groups')
+
+        group_summaries = []
+        for i, group in enumerate(groups):
+            logger.info(f'Summarizing group {i + 1}/{len(groups)}')
+            group_summaries_content = '\n\n'.join(group)
+            group_content = GROUP_SUMMARY_PROMPT.format(summaries=group_summaries_content)
+            group_messages = [HumanMessage(content=group_content)]
+
+            group_response = await group_chat_model.ainvoke(group_messages)
+            group_summary = group_response.content
+            group_summaries.append(group_summary)
+
+            group_summary_path = os.path.join(SUMMARY_DIR, f"group_summary_{i + 1}.txt")
+            with open(group_summary_path, 'w', encoding='utf-8') as f:
+                f.write(group_summary)
+
+        final_summaries_content = '\n\n'.join(group_summaries)
+        final_content = FINAL_SUMMARY_PROMPT.format(summaries=final_summaries_content)
+        final_messages = [HumanMessage(content=final_content)]
+
+        final_response = await final_chat_model.ainvoke(final_messages)
+        final_summary = final_response.content
+
+        final_summary_path = os.path.join(SUMMARY_DIR, "final_summary.txt")
+        with open(final_summary_path, 'w', encoding='utf-8') as f:
+            f.write(final_summary)
+
+        logger.info(f'Final summary created and saved to {final_summary_path}')
+        return final_summary
+
     async def run(self):
         chat_history = await load_chat_history('chat_history/result.json')
         chat_history_chunks = await split_chat_history(chat_history.messages, chunk_size=self.chunk_size)
 
         chunks_chat_model = ChatOpenAI(model='gpt-4.1-nano', temperature=0.3, api_key=OPENAI_API_KEY)
-        final_chat_model = ChatOpenAI(model='gpt-4.1-mini', temperature=0.3, api_key=OPENAI_API_KEY)        # mini model for larger tpm limits
+        groups_chat_model = ChatOpenAI(model='gpt-4.1-mini', temperature=0.3, api_key=OPENAI_API_KEY)
+        final_chat_model = ChatOpenAI(model='gpt-4.1', temperature=0.3, api_key=OPENAI_API_KEY)
         logger.info('Chat models initialized')
 
         summarized_chunks = []
@@ -261,7 +322,7 @@ class Historizer:
             chunk_summary = await self.summarize_chunk(chunk, chunks_chat_model)
             summarized_chunks.append(chunk_summary)
 
-        final_summary = await self.summarize_final(summarized_chunks, final_chat_model)
+        final_summary = await self.summarize_final_in_groups(summarized_chunks, groups_chat_model, final_chat_model, 70)
 
         logger.info('All processing completed successfully')
         return final_summary
