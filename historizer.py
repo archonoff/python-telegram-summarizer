@@ -5,13 +5,14 @@ import os
 from datetime import datetime
 
 from dotenv import load_dotenv
-from jinja2 import Template
 from langchain.schema import HumanMessage
 from langchain_community.chat_models import ChatOpenAI
 from openai import RateLimitError
 
 from models import UserMessage, ServiceMessage
+from templates import USER_MESSAGE_TEMPLATE, SERVICE_MESSAGE_TEMPLATE
 from utils import load_chat_history, split_chat_history, ensure_dirs_exist
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -106,28 +107,6 @@ FINAL_SUMMARY_PROMPT = (
     'В завершение истории сделай краткий эпилог о том, какой путь прошло сообщество и что делает «Аниме Ячейку» особенным культурным феноменом.\n'
     f'Кстати, сегодня {TODAY}, так что смотри не залезь в будущее'
 )
-
-
-USER_MESSAGE_TEMPLATE = Template('''
-USER MESSAGE:
-{% if from_ %}{{from_}} {% endif %}
-{{datetime}}{% if text %}
-{{text}}{% endif %}{% if sticker_emoji %}
-К этому сообщению прикреплён стикер с эмодзи {{sticker_emoji}}{% endif %}{% if photo %}
-К этому сообщению прикреплено фото{% endif %}{% if reply_to.text %}
-(В ответ на сообщение "{{reply_to.text|truncate(100, true, '...')}}"{% if reply_to.from_ %} от {{reply_to.from_}}{% endif %}){% endif %}{% if reactions %}
-Поставленные реакции: {% for reaction in reactions %}{{reaction.emoji}} ({{reaction.count}}) {% endfor %}{% endif %}
-------------------------
-''')
-
-
-SERVICE_MESSAGE_TEMPLATE = Template('''
-SERVICE MESSAGE:
-{% if datetime %}{{datetime}} {% endif %}
-{% if action %}action = {{action}} {% endif %}
-{% if actor %}actor = {{actor}} {% endif %}
-------------------------
-''')
 
 
 class Historizer:
