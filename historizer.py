@@ -11,6 +11,7 @@ from langchain_community.chat_models import ChatOpenAI
 from openai import RateLimitError
 
 from models import UserMessage, ServiceMessage
+from utils import load_chat_history, split_chat_history, ensure_dirs_exist
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
