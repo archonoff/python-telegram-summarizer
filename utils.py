@@ -15,6 +15,10 @@ def ensure_dirs_exist():
     pathlib.Path(SUMMARY_DIR).mkdir(parents=True, exist_ok=True)
 
 
+def ensure_dir_exist(dir: str):
+    pathlib.Path(dir).mkdir(parents=True, exist_ok=True)
+
+
 async def load_chat_history(file_path: str) -> ChatHistory:
     logger.info(f'Loading chat history from {file_path}')
     with open(file_path, 'r', encoding='utf-8') as file:
