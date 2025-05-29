@@ -11,7 +11,7 @@ from openai import RateLimitError
 
 from models import UserMessage, ServiceMessage
 from templates import USER_MESSAGE_TEMPLATE, SERVICE_MESSAGE_TEMPLATE
-from utils import load_chat_history, split_chat_history, ensure_dirs_exist
+from utils import load_chat_history, split_chat_history, ensure_dir_exist
 
 
 logger = logging.getLogger(__name__)
@@ -115,7 +115,8 @@ class Historizer:
 
     def __init__(self, chunk_size: int = 10000):
         self.chunk_size = chunk_size
-        ensure_dirs_exist()
+        ensure_dir_exist(CACHE_DIR)
+        ensure_dir_exist(SUMMARY_DIR)
 
     def render_message(self, message: UserMessage | ServiceMessage) -> str:
         self.messages_dict[message.id] = message
