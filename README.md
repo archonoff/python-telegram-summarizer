@@ -86,3 +86,37 @@ To run tests, use:
 ```
 pytest
 ```
+
+## Chat History Analysis
+
+This project also includes a module for analyzing and creating a historical narrative from Telegram chat history.
+
+### Usage of historizer.py
+
+The `historizer.py` script processes a Telegram chat history JSON file to create a structured historical narrative of the conversation:
+
+```
+python historizer.py
+```
+
+### Features
+
+- Processes chat history from a JSON file (expected at `chat_history/result.json`)
+- Breaks the chat into manageable chunks for analysis
+- Uses OpenAI models (nano, mini, and full versions) to generate summaries
+- Creates a multi-level summary hierarchy:
+  1. Individual chunk summaries
+  2. Group summaries for sets of chunks
+  3. Final comprehensive historical narrative
+- Caches intermediate results to save processing time and API costs
+- Outputs final summary to `chat_history/summaries/final_summary.txt`
+
+### Customization
+
+You can adjust the analysis by modifying:
+- Chunk size (default is 6000 messages per chunk)
+- Group size for intermediate summaries
+- Prompt templates for different summarization levels
+- OpenAI model selection
+
+The script requires the same API keys as the summarizer module.
