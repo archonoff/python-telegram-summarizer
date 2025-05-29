@@ -6,14 +6,6 @@ from models import ChatHistory
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-CACHE_DIR = 'chat_history/cache'
-SUMMARY_DIR = 'chat_history/summaries'
-
-
-def ensure_dirs_exist():
-    pathlib.Path(CACHE_DIR).mkdir(parents=True, exist_ok=True)
-    pathlib.Path(SUMMARY_DIR).mkdir(parents=True, exist_ok=True)
-
 
 def ensure_dir_exist(dir: str):
     pathlib.Path(dir).mkdir(parents=True, exist_ok=True)

@@ -2,7 +2,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from utils import split_chat_history, ensure_dirs_exist, CACHE_DIR, SUMMARY_DIR
+from utils import split_chat_history, ensure_dir_exist
 
 
 class TestSplitChatHistory:
@@ -51,7 +51,7 @@ class TestSplitChatHistory:
         test_list = list(range(10))
         chunk_size = 5
 
-        with patch('historizer.logger') as mock_logger:
+        with patch('utils.logger') as mock_logger:
             await split_chat_history(test_list, chunk_size=chunk_size)
             assert mock_logger.info.call_count == 2
             mock_logger.info.assert_any_call(f'Splitting chat history into chunks of size {chunk_size}')
@@ -68,17 +68,12 @@ class TestSplitChatHistory:
         assert len(result[1]) == len(test_list) - default_chunk_size
 
 
-def test_ensure_dirs_exist():
-    mock_cache_path = MagicMock()
-    mock_summary_path = MagicMock()
+def test_ensure_dir_exist():
+    mock_path = MagicMock()
+    path = 'path'
 
-    with patch('historizer.pathlib.Path') as mock_path:
-        mock_path.side_effect = lambda x: mock_cache_path if x == CACHE_DIR else mock_summary_path
-
-        ensure_dirs_exist()
-
-        mock_path.assert_any_call(CACHE_DIR)
-        mock_path.assert_any_call(SUMMARY_DIR)
-
-        mock_cache_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
-        mock_summary_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+    with patch('utils.pathlib.Path') as mock:
+        mock.return_value = mock_path
+        ensure_dir_exist(path)
+        mock.assert_any_call(path)
+        mock_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
